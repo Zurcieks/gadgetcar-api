@@ -21,8 +21,10 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Roles } from './dto/changeRole.dto';
 import { RateLimiterGuard } from './guards/rate-limiterGuard';
 import { Request } from 'express';
+import { decode } from 'punycode';
 @Controller('auth')
 export class AuthController {
+  userModel: any;
   constructor(private authService: AuthService) {}
   @UseGuards(RateLimiterGuard)
   @Post('register')
@@ -74,14 +76,35 @@ export class AuthController {
   }
 
   @Post('logout')
-  logout(@Res() res: Response): void {
-    res.cookie('auth', '', {
-      httpOnly: true,
-      secure: false,
-      maxAge: 0, // Działanie na podstawie ustawiania żywotności ciasteczka na 0.
-      sameSite: 'strict',
-    });
+  async logout(@Req() req: Request, @Res() res: Response): Promise<void> {
+    const refreshToken = req.cookies['refresh-token'];
 
-    res.status(200).json({ message: 'Wylogowano pomyślnie' });
+    if (!refreshToken) {
+      res.status(400).json({ message: 'Brak tokena odświeżania w żądaniu' });
+      return;
+    }
+
+    try {
+      await this.authService.logout(refreshToken);
+
+      res.clearCookie('auth', {
+        httpOnly: true,
+        secure: false,
+        sameSite: 'strict',
+      });
+      res.clearCookie('refresh-token', {
+        httpOnly: true,
+        secure: false,
+        sameSite: 'strict',
+      });
+
+      res.status(200).json({ message: 'Wylogowano pomyślnie' });
+    } catch (error) {
+      console.error('Błąd podczas wylogowywania:', error);
+      res.status(500).json({
+        message:
+          'Wystąpił błąd podczas wylogowywania. Spróbuj ponownie później.',
+      });
+    }
   }
 }

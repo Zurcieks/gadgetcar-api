@@ -19,7 +19,7 @@ export enum Voivodeship {
   WIELKOPOLSKIE = 'Wielkopolskie',
   ZACHODNIOPOMORSKIE = 'Zachodniopomorskie',
 }
- 
+
 @Schema()
 export class User extends Document {
   @Prop({ required: true })
@@ -57,9 +57,12 @@ export class User extends Document {
 
   @Prop({ required: true, default: 'user' })
   role: string;
- 
-  @Prop({type: String, default: null})
+
+  @Prop({ type: String, default: null })
   refreshToken: string;
+
+  @Prop({ required: false })
+  refreshTokenExpires: Date;
 
   @Prop({ default: Date.now })
   createdAt: Date;

@@ -4,10 +4,10 @@ import * as cookieParser from 'cookie-parser';
 import * as dotenv from 'dotenv';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-dotenv.config({ path: '.env' });
+ 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
+  dotenv.config();
   const config = new DocumentBuilder()
     .setTitle('Auth Api')
     .setDescription('Basic Api with user auth and authorization')
@@ -42,6 +42,7 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 5000;
   await app.listen(port);
+ 
 }
 
 bootstrap();

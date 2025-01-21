@@ -13,7 +13,7 @@ import { RegisterDto } from './dto/register.dto';
 import * as bcrypt from 'bcryptjs';
 import { LoginDto } from './dto/login.dto';
 import { Response } from 'express';
-
+import * as crypto from 'crypto';
 import { EmailService } from './service/sendEmail';
 import { RequestResetPasswordDto } from './dto/request-reset-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -107,10 +107,12 @@ export class AuthService {
         expiresIn: '15m',
       });
 
-      const refreshToken = this.jwtService.sign(payload, {
-        expiresIn: '7d'
-      })
+      const refreshToken = crypto.randomBytes(40).toString('hex');
+      const refreshTokenExpires = new Date(
+        Date.now() + 7 * 24 * 60 * 60 * 1000,
+      );
 
+      user.refreshTokenExpires = refreshTokenExpires;
       user.refreshToken = refreshToken;
       await user.save();
 
@@ -124,69 +126,65 @@ export class AuthService {
       res.cookie('refresh-token', refreshToken, {
         httpOnly: true,
         secure: false,
-        maxAge: 15 * 60 * 1000,
+        maxAge: refreshTokenExpires.getTime(),
         sameSite: 'strict',
       });
 
-      return res.json({ access_token: accessToken, RefreshToken: refreshToken});  
+      return res.json({
+        access_token: accessToken,
+        RefreshToken: refreshToken,
+      });
     } catch (error) {
       console.error('Login error:', error);
       throw new UnauthorizedException('Błąd logowania');
     }
   }
 
- 
- 
   async refreshAccessToken(refreshToken: string, res: Response): Promise<void> {
-    try {
- 
-      const decoded = this.jwtService.verify(refreshToken, { secret: process.env.SECRETKEY});
-  
-      const user = await this.userModel.findById(decoded.sub);
-      if (!user) {
-        throw new UnauthorizedException('Nie znaleziono użytkownika');
-      }
- 
-      if (!user.isEmailVerified) {
-        throw new UnauthorizedException('Konto nie jest zweryfikowane');
-      }
-  
- 
-      const payload = {
-        sub: user._id.toString(),
-        email: user.email,
-        role: user.role,
-      };
-  
-      const newAccessToken = this.jwtService.sign(payload, {
-        expiresIn: '15m',
-      });
-  
-      const newRefreshToken = this.jwtService.sign(payload, {
-        expiresIn: '7d',
-      });
- 
-      res.cookie('auth', newAccessToken, {
-        httpOnly: true,
-        secure: false,
-        maxAge: 15 * 60 * 1000,
-        sameSite: 'strict',
-      });
-  
-      res.cookie('refresh-token', newRefreshToken, {
-        httpOnly: true,
-        secure: false,
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        sameSite: 'strict',
-      });
-  
-      res.json({ access_token: newAccessToken, refresh_token: newRefreshToken });
-    } catch (error) {
-      console.error('Refresh token error:', error);
-      throw new UnauthorizedException('Nieprawidłowy lub wygasły refresh token');
+    const user = await this.userModel.findOne({
+      refreshToken,
+      refreshTokenExpires: { $gt: new Date() }, // Sprawdzenie, czy token nie wygasł
+    });
+
+    if (!user) {
+      throw new UnauthorizedException(
+        'Nieprawidłowy lub wygasły refresh token',
+      );
     }
+
+    const payload = {
+      sub: user._id.toString(),
+      email: user.email,
+      role: user.role,
+    };
+
+    const newAccessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
+    const newRefreshToken = crypto.randomBytes(40).toString('hex');
+    const refreshTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    user.refreshToken = newRefreshToken;
+    user.refreshTokenExpires = refreshTokenExpires;
+    await user.save();
+
+    res.cookie('auth', newAccessToken, {
+      httpOnly: true,
+      secure: false,
+      maxAge: 15 * 60 * 1000,
+      sameSite: 'strict',
+    });
+
+    res.cookie('refresh-token', newRefreshToken, {
+      httpOnly: true,
+      secure: false,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      sameSite: 'strict',
+    });
+
+    res.json({
+      access_token: newAccessToken,
+      refresh_token: newRefreshToken,
+    });
   }
-  
 
   async validateUser(email: string, password: string): Promise<User> {
     try {
@@ -285,8 +283,21 @@ export class AuthService {
     user.password = await bcrypt.hash(newPassword, 10);
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
+
+    user.refreshToken = crypto.randomBytes(40).toString('hex');
     await user.save();
 
     return 'Hasło zostało pomyslnie zresetowane';
+  }
+
+  async logout(refreshToken: string): Promise<void> {
+    const user = await this.userModel.findOne({ refreshToken });
+
+    if (!user) {
+      throw new NotFoundException('Nie znaleziono użytkownika');
+    }
+    user.refreshTokenExpires = null;
+    user.refreshToken = null;
+    await user.save();
   }
 }
