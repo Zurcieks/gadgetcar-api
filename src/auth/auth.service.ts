@@ -109,7 +109,9 @@ export class AuthService {
 
       const refreshToken = crypto.randomBytes(40).toString('hex');
       const refreshTokenExpires = new Date(
-        Date.now() + 7 * 24 * 60 * 60 * 1000,
+        rememberMe
+          ? Date.now() + 30 * 24 * 60 * 60 * 1000
+          : Date.now() + 7 * 24 * 60 * 60 * 1000,
       );
 
       user.refreshTokenExpires = refreshTokenExpires;
@@ -126,7 +128,7 @@ export class AuthService {
       res.cookie('refresh-token', refreshToken, {
         httpOnly: true,
         secure: false,
-        maxAge: refreshTokenExpires.getTime(),
+        maxAge: rememberMe ? 30 * 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000,
         sameSite: 'strict',
       });
 
@@ -136,14 +138,14 @@ export class AuthService {
       });
     } catch (error) {
       console.error('Login error:', error);
-      throw new UnauthorizedException('Błąd logowania');
+      throw new BadRequestException('Błąd logowania');
     }
   }
 
   async refreshAccessToken(refreshToken: string, res: Response): Promise<void> {
     const user = await this.userModel.findOne({
       refreshToken,
-      refreshTokenExpires: { $gt: new Date() }, // Sprawdzenie, czy token nie wygasł
+      refreshTokenExpires: { $gt: new Date() },  
     });
 
     if (!user) {
@@ -159,11 +161,7 @@ export class AuthService {
     };
 
     const newAccessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
-    const newRefreshToken = crypto.randomBytes(40).toString('hex');
-    const refreshTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    user.refreshToken = newRefreshToken;
-    user.refreshTokenExpires = refreshTokenExpires;
     await user.save();
 
     res.cookie('auth', newAccessToken, {
@@ -173,16 +171,8 @@ export class AuthService {
       sameSite: 'strict',
     });
 
-    res.cookie('refresh-token', newRefreshToken, {
-      httpOnly: true,
-      secure: false,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: 'strict',
-    });
-
     res.json({
       access_token: newAccessToken,
-      refresh_token: newRefreshToken,
     });
   }
 
@@ -267,7 +257,7 @@ export class AuthService {
     try {
       decoded = this.jwtService.verify(token);
     } catch (error) {
-      throw new BadRequestException('Nieprawdiłowy lub wygasły token');
+      throw new UnauthorizedException('Nieprawdiłowy lub wygasły token');
     }
 
     const user = await this.userModel.findOne({
@@ -281,8 +271,8 @@ export class AuthService {
     }
 
     user.password = await bcrypt.hash(newPassword, 10);
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
 
     user.refreshToken = crypto.randomBytes(40).toString('hex');
     await user.save();

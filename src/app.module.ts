@@ -9,6 +9,9 @@ import { TasksService } from './tasks/tasks.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { UserModule } from './user/user.module';
 import { ProductModule } from './product/product.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
+ 
  
  
 
@@ -20,6 +23,11 @@ import { ProductModule } from './product/product.module';
     AuthModule,
     UserModule,
     ProductModule,
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'uploads'),  // Ścieżka do folderu uploads
+      serveRoot: '/uploads',  // Pod tym URL będą dostępne obrazy
+    }),
+ 
     
   ],
   controllers: [AuthController, UserController],

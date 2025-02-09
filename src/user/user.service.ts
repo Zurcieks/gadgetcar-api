@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from 'src/schemas/User.schema';
@@ -17,55 +21,49 @@ export class UserService {
     return this.userModel.find();
   }
 
-  async getUserById(token: string): Promise<User> {
+  async getUserById(userId: string): Promise<User> {
     try {
-      const decoded: JwtPayload = this.jwtService.verify(token);
-
-      const userId = decoded.sub;
-
-      const user = await this.userModel.findById(userId).exec();
+      const user = await this.userModel.findById(userId);
 
       if (!user) {
-        throw new NotFoundException(
-          `Nie znaleziono użytkownika o ID: ${userId}`,
+        throw new UnauthorizedException(
+          'Nieprawidłowy token lub użytkownik nie istnieje',
         );
       }
 
       return user;
     } catch (error) {
-      throw new NotFoundException(
+      throw new UnauthorizedException(
         'Nieprawidłowy token lub użytkownik nie znaleziony',
       );
     }
   }
 
-  async deleteAccount(token: string): Promise<any> {
-    const decoded: JwtPayload = this.jwtService.verify(token);
-
-    const userId = decoded.sub;
-
+  async deleteAccount(userId: string): Promise<any> {
     const user = await this.userModel.findByIdAndDelete(userId);
+
+    if (!user) {
+      throw new UnauthorizedException(
+        `Nie znaleziono użytkownika o ID: ${userId} lub token jest nieprawidłowy`,
+      );
+    }
 
     return user;
   }
 
-  async updateUser(token: string, updateDto: updateUserDto): Promise<User> {
+  async updateUser(userId: string, updateDto: updateUserDto): Promise<User> {
     try {
-      const decoded: JwtPayload = this.jwtService.verify(token);
-
-      const userId = decoded.sub;
-
       const user = await this.userModel.findByIdAndUpdate(userId, updateDto);
 
       if (!user) {
-        throw new NotFoundException(
-          `Nie znaleziono użytkownika o ID: ${userId}`,
+        throw new UnauthorizedException(
+          `Nie znaleziono użytkownika o ID: ${userId} lub token jest nieprawidłowy`,
         );
       }
 
       return user;
     } catch (error) {
-      throw new NotFoundException(
+      throw new UnauthorizedException(
         'Nieprawidłowy token lub użytkownik nie znaleziony',
       );
     }

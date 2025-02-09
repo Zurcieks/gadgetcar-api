@@ -22,7 +22,7 @@ export class Product extends Document {
   @Prop({ required: true })
   price: number;
 
-  @Prop({ type: [String], required: false })
+  @Prop({ required: false })
   images: string[];
 
   @Prop({ required: true, enum: Availability })
