@@ -11,6 +11,8 @@ import { UserModule } from './user/user.module';
 import { ProductModule } from './product/product.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { CartModule } from './cart/cart.module';
+ 
  
  
  
@@ -27,6 +29,7 @@ import { join } from 'path';
       rootPath: join(__dirname, '..', 'uploads'),  // Ścieżka do folderu uploads
       serveRoot: '/uploads',  // Pod tym URL będą dostępne obrazy
     }),
+    CartModule,
  
     
   ],

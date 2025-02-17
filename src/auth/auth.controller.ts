@@ -22,6 +22,7 @@
   import { RateLimiterGuard } from './guards/rate-limiterGuard';
   import { Request } from 'express';
   import { decode } from 'punycode';
+import { JwtAuthGuard } from './guards/JwtAuthGuard';
   @Controller('auth')
   export class AuthController {
     userModel: any;
@@ -60,6 +61,10 @@
       }
     }
 
+    async changeRole() {
+
+    }
+
     @Get('verify')
     async verifyEmail(@Query('token') token: string): Promise<String> {
       return this.authService.confirmEmail(token);
@@ -76,6 +81,8 @@
     async resetPassword(@Body() dto: ResetPasswordDto): Promise<String> {
       return this.authService.resetPassword(dto);
     }
+
+
 
     @Post('logout')
     async logout(@Req() req: Request, @Res() res: Response): Promise<void> {

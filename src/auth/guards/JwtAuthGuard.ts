@@ -18,14 +18,14 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     try {
-      // Dekodujemy token i weryfikujemy go
+ 
       const decoded: JwtPayload = this.jwtService.verify(token);  
 
-      // Przechowujemy dane użytkownika w kontekście żądania
+ 
       request.user = decoded;
-      return true;  // Jeśli token jest poprawny, dostęp do zasobu jest dozwolony
+      return true;  
     } catch (e) {
-      return false;  // Jeśli token jest nieprawidłowy, dostęp jest zabroniony
+      return false; 
     }
   }
 }

@@ -28,7 +28,7 @@ import { AdminGuard } from 'src/auth/guards/roleGuard';
 
 const uploadDir = path.join(__dirname, '..', '..', 'uploads');
 
-// Tworzenie katalogu, jeśli nie istnieje
+ 
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -50,7 +50,7 @@ export class ProductController {
           callback(null, filename);
         },
       }),
-      limits: { fileSize: 5 * 1024 * 1024 }, // Maksymalny rozmiar pliku: 5MB
+      limits: { fileSize: 5 * 1024 * 1024 },  
     }),
   )
   async create(
@@ -71,7 +71,7 @@ export class ProductController {
     }
   }
 
-  @Get()
+  @Get('/')
   async findAll(): Promise<Product[]> {
     return this.productsService.findAll();
   }

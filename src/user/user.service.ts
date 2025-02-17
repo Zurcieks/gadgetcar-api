@@ -9,6 +9,7 @@ import { User } from 'src/schemas/User.schema';
 import { updateUserDto } from './dto/updateUser.dto';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from '../auth/jwt/jwt-strategy';
+import { Roles } from 'src/auth/dto/changeRole.dto';
 
 @Injectable()
 export class UserService {
@@ -38,7 +39,18 @@ export class UserService {
       );
     }
   }
-
+    async changeUserRole(changeRole: Roles, userId: string): Promise<User> {
+      const { userRoles } = changeRole;
+      const user = await this.userModel.findById(userId);
+  
+      if (!user) {
+        throw new NotFoundException('Użytkownik nie znaleziony');
+      }
+  
+      user.role = userRoles[0];
+      await user.save();
+      return user;
+    }
   async deleteAccount(userId: string): Promise<any> {
     const user = await this.userModel.findByIdAndDelete(userId);
 

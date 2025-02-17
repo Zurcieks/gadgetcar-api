@@ -13,7 +13,8 @@ import { UserService } from './user.service';
 import { User } from 'src/schemas/User.schema';
 import { JwtAuthGuard } from 'src/auth/guards/JwtAuthGuard';
 import { updateUserDto } from './dto/updateUser.dto';
- 
+import { Roles } from 'src/auth/dto/changeRole.dto';
+import { AdminGuard } from 'src/auth/guards/roleGuard';
 
 @Controller('user')
 export class UserController {
@@ -30,7 +31,16 @@ export class UserController {
   async getUserById(@Req() req): Promise<User> {
     return this.userService.getUserById(req.user.sub);
   }
- 
+
+  @Patch('change-role')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async changeUserRole(
+    @Body() changeRole: Roles & { userId: string }
+  ): Promise<User> {
+    return this.userService.changeUserRole(changeRole, changeRole.userId);
+  }
+
+  
 
   @UseGuards(JwtAuthGuard)
   @Post('/delete')
@@ -38,7 +48,6 @@ export class UserController {
     return this.userService.deleteAccount(req.user.sub);
   }
 
- 
   @UseGuards(JwtAuthGuard)
   @Put('/')
   async updateCurrentUser(

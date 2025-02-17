@@ -9,5 +9,6 @@ export class Roles {
     @IsArray()
     @ArrayNotEmpty()
     @IsEnum(userRoleDto, {each: true})
-    userRoles: userRoleDto[];    
+    userRoles: userRoleDto[];  
+    userId: string;  
 }

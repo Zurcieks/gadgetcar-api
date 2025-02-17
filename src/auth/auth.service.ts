@@ -55,7 +55,7 @@ export class AuthService {
         { expiresIn: '1h' },
       );
 
-      const verificationLink = `http://localhost:3000/auth/verify?token=${verificationToken}`;
+      const verificationLink = `http://localhost:3000/autoryzacja/weryfikacja?token=${verificationToken}`;
       await EmailService.sendVerificationEmail(
         email,
         verificationLink,
@@ -72,18 +72,7 @@ export class AuthService {
     }
   }
 
-  async changeUserRole(changeRole: Roles, userId: string): Promise<User> {
-    const { userRoles } = changeRole;
-    const user = await this.userModel.findById(userId);
 
-    if (!user) {
-      throw new NotFoundException('Użytkownik nie znaleziony');
-    }
-
-    user.role = userRoles[0];
-    await user.save();
-    return user;
-  }
 
   async login(loginDto: LoginDto, res: Response, rememberMe: boolean) {
     try {
@@ -231,7 +220,7 @@ export class AuthService {
     const user = await this.userModel.findOne({ email });
 
     if (!user) {
-      throw new BadRequestException(
+      throw new NotFoundException(
         'Nie znaleziono użytkownika z podanym adresem email',
       );
     }
@@ -244,7 +233,7 @@ export class AuthService {
     user.resetPasswordExpires = new Date(Date.now() + 3600 * 1000);
     await user.save();
 
-    const resetLink = `http://localhost:3000/auth/reset-password?token=${resetToken}`;
+    const resetLink = `http://localhost:3000/autoryzacja/prosba?token=${resetToken}`;
     await EmailService.sendPasswordResetEmail(email, resetLink, user.firstName);
 
     return 'Link do resetowania hasła został wysłany na podany e-mail';
