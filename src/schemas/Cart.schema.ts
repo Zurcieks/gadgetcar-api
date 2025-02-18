@@ -11,12 +11,18 @@ export class Cart extends Document {
       {
         productId: { type: Types.ObjectId, ref: 'Product', required: true },
         quantity: { type: Number, required: true, min: 1 },
-        price: { type: Number, required: true }, // Cena za jeden produkt
+        price: { type: Number, required: true },
+ 
       },
     ],
     default: [],
   })
-  items: { productId: Types.ObjectId; quantity: number; price: number }[];
+  items: {
+    productId: Types.ObjectId;
+    quantity: number;
+    price: number;
+ 
+  }[];
 
   @Prop({ type: Number, default: 0 })
   totalPrice: number;

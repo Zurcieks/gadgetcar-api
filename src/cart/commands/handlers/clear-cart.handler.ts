@@ -1,7 +1,8 @@
 import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
 import { CartRepository } from '../../repository/cart.repository';
-import { ClearCartCommand } from '../clear-cart.command';
+ 
 import { CartClearedEvent } from 'src/cart/events/cart-cleared.event';
+import { ClearCartCommand } from '../clear-cart.command';
 
 @CommandHandler(ClearCartCommand)
 export class ClearCartHandler implements ICommandHandler<ClearCartCommand> {

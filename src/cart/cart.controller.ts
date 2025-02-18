@@ -20,6 +20,8 @@ export class CartController {
   @Get()
   async getCart(@Request() req) {
     return this.queryBus.execute(new GetCartQuery(new Types.ObjectId(req.user.sub)));
+
+    
   }
 
  
@@ -44,12 +46,12 @@ export class CartController {
 
  
   @Delete('remove/:productId')
-  async removeItem(@Request() req, @Param('productId') productId: string, @Body() removeItemDto: RemoveItemDto) {
+  async removeItem(@Request() req, @Param('productId') productId: string) {
     return this.commandBus.execute(
-      new RemoveItemCommand(new Types.ObjectId(req.user.sub), new Types.ObjectId(removeItemDto.productId)),
+      new RemoveItemCommand(new Types.ObjectId(req.user.sub), new Types.ObjectId(productId)),
     );
   }
- 
+  
   @Delete('clear')
   async clearCart(@Request() req) {
     return this.commandBus.execute(new ClearCartCommand(new Types.ObjectId(req.user.sub)));

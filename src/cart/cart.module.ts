@@ -9,13 +9,16 @@ import { AddItemHandler } from './commands/handlers/add-item.handler';
 import { GetCartHandler } from './queries/handlers/get-card.handler';
 import { Cart, CartSchema } from 'src/schemas/Cart.schema';
 import { Product, ProductSchema } from 'src/schemas/Products.schema';
+import { ClearCartHandler } from './commands/handlers/clear-cart.handler';
+import { RemoveItemHandler } from './commands/handlers/remove-item.handler';
+import { UpdateItemHandler } from './commands/handlers/update-item.handler';
  
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Cart.name, schema: CartSchema },
-      { name: Product.name, schema: ProductSchema }, // <--- DODANE
+      { name: Product.name, schema: ProductSchema },
     ]),
     CqrsModule,
   ],
@@ -25,7 +28,10 @@ import { Product, ProductSchema } from 'src/schemas/Products.schema';
     ProductRepository,
     AddItemHandler,
     GetCartHandler,
+    ClearCartHandler,
+    RemoveItemHandler,
+    UpdateItemHandler,
   ],
-  exports: [ProductRepository], // <--- EKSPORTUJEMY, JEŚLI INNE MODUŁY TEŻ MAJĄ GO UŻYWAĆ
+  exports: [ProductRepository], 
 })
 export class CartModule {}
