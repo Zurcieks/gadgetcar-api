@@ -4,7 +4,7 @@ import * as cookieParser from 'cookie-parser';
 import * as dotenv from 'dotenv';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
- 
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   dotenv.config();
@@ -32,17 +32,18 @@ async function bootstrap() {
   app.enableCors({
     origin: ['http://192.168.0.234:3000', 'http://localhost:3000'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   });
   app.use(cookieParser());
-  app.useGlobalPipes(new ValidationPipe({
-    transform: true,
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+    }),
+  );
 
   const port = process.env.PORT ?? 5000;
   await app.listen(port);
- 
 }
 
 bootstrap();
