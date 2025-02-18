@@ -2,7 +2,6 @@ import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
 import { AddItemCommand } from '../add-item.command';
 import { CartRepository } from '../../repository/cart.repository';
  
-import { Types } from 'mongoose';
 import { ItemAddedEvent } from '../../events/item-added.event';
 import { ProductRepository } from 'src/cart/repository/product.repository';
 
@@ -31,7 +30,7 @@ export class AddItemHandler implements ICommandHandler<AddItemCommand> {
     if (item) {
       item.quantity += quantity;
     } else {
-      cart.items.push({ productId, quantity, price: product.price });
+      cart.items.push({ productId, quantity, price: product.price, });
     }
 
     await this.cartRepository.save(cart);
