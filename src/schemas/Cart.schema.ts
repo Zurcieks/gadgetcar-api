@@ -6,6 +6,9 @@ export class Cart extends Document {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   userId: Types.ObjectId;
 
+  @Prop({ required: true, default: false })
+  isAnonymous: boolean;
+
   @Prop({
     type: [
       {

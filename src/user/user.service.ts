@@ -7,15 +7,15 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from 'src/schemas/User.schema';
 import { updateUserDto } from './dto/updateUser.dto';
-import { JwtService } from '@nestjs/jwt';
-import { JwtPayload } from '../auth/jwt/jwt-strategy';
+import { Response } from 'express';
 import { Roles } from 'src/auth/dto/changeRole.dto';
+import { CookieService } from 'src/auth/service/cookie.service';
 
 @Injectable()
 export class UserService {
   constructor(
-    private jwtService: JwtService,
     @InjectModel(User.name) private readonly userModel: Model<User>,
+    private readonly cookieService: CookieService
   ) {}
 
   async getUser(): Promise<User[]> {
@@ -39,19 +39,19 @@ export class UserService {
       );
     }
   }
-    async changeUserRole(changeRole: Roles, userId: string): Promise<User> {
-      const { userRoles } = changeRole;
-      const user = await this.userModel.findById(userId);
-  
-      if (!user) {
-        throw new NotFoundException('Użytkownik nie znaleziony');
-      }
-  
-      user.role = userRoles[0];
-      await user.save();
-      return user;
+  async changeUserRole(changeRole: Roles, userId: string): Promise<User> {
+    const { userRoles } = changeRole;
+    const user = await this.userModel.findById(userId);
+
+    if (!user) {
+      throw new NotFoundException('Użytkownik nie znaleziony');
     }
-  async deleteAccount(userId: string): Promise<any> {
+
+    user.role = userRoles[0];
+    await user.save();
+    return user;
+  }
+  async deleteAccount(userId: string, res: Response): Promise<any> {
     const user = await this.userModel.findByIdAndDelete(userId);
 
     if (!user) {
@@ -59,7 +59,7 @@ export class UserService {
         `Nie znaleziono użytkownika o ID: ${userId} lub token jest nieprawidłowy`,
       );
     }
-
+    this.cookieService.DeleteCookies(res);
     return user;
   }
 

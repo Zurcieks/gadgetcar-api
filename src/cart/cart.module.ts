@@ -12,6 +12,7 @@ import { Product, ProductSchema } from 'src/schemas/Products.schema';
 import { ClearCartHandler } from './commands/handlers/clear-cart.handler';
 import { RemoveItemHandler } from './commands/handlers/remove-item.handler';
 import { UpdateItemHandler } from './commands/handlers/update-item.handler';
+import { MergeCartsHandler } from './commands/handlers/merge-carts.handler';
  
 
 @Module({
@@ -31,7 +32,8 @@ import { UpdateItemHandler } from './commands/handlers/update-item.handler';
     ClearCartHandler,
     RemoveItemHandler,
     UpdateItemHandler,
+    MergeCartsHandler,
   ],
-  exports: [ProductRepository], 
+  exports: [ProductRepository, CartRepository], 
 })
 export class CartModule {}

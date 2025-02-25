@@ -15,6 +15,7 @@ import { JwtAuthGuard } from 'src/auth/guards/JwtAuthGuard';
 import { updateUserDto } from './dto/updateUser.dto';
 import { Roles } from 'src/auth/dto/changeRole.dto';
 import { AdminGuard } from 'src/auth/guards/roleGuard';
+import { Response } from 'express';
 
 @Controller('user')
 export class UserController {
@@ -44,8 +45,8 @@ export class UserController {
 
   @UseGuards(JwtAuthGuard)
   @Post('/delete')
-  async deleteAccount(@Req() req): Promise<any> {
-    return this.userService.deleteAccount(req.user.sub);
+  async deleteAccount(@Req() req, res: Response ): Promise<any> {
+    return this.userService.deleteAccount(req.user.sub, res);
   }
 
   @UseGuards(JwtAuthGuard)

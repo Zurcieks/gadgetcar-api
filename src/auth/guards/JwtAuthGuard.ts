@@ -11,7 +11,7 @@ export class JwtAuthGuard implements CanActivate {
     context: ExecutionContext,
   ): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const token = request.cookies['auth'];  // Pobieramy token JWT z ciasteczka
+    const token = request.cookies['auth'];   
 
     if (!token) {
       return false;  // Jeśli token nie istnieje, dostęp jest zabroniony

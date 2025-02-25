@@ -14,16 +14,21 @@ import * as bcrypt from 'bcryptjs';
 import { LoginDto } from './dto/login.dto';
 import { Response } from 'express';
 import * as crypto from 'crypto';
-import { EmailService } from './service/sendEmail';
 import { RequestResetPasswordDto } from './dto/request-reset-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import { Roles } from './dto/changeRole.dto';
+import { EmailService } from './service/email.service';
+import { AuthRepository } from './repository/authRepository';
+import { TokenService } from './service/token.service';
+import { CookieService } from './service/cookie.service';
 
 @Injectable()
 export class AuthService {
   sendEmail: any;
   constructor(
     private jwtService: JwtService,
+    private readonly authRepository: AuthRepository,
+    private readonly tokenService: TokenService,
+    private readonly cookieService: CookieService,
 
     @InjectModel(User.name) private userModel: Model<User>,
   ) {}
@@ -31,7 +36,7 @@ export class AuthService {
   async register(createUserDto: RegisterDto): Promise<User> {
     try {
       const { firstName, lastName, email, password } = createUserDto;
-      const userExists = await this.userModel.findOne({ email });
+      const userExists = await this.authRepository.findByEmail(email);
 
       if (userExists) {
         throw new ConflictException(
@@ -48,19 +53,22 @@ export class AuthService {
         password: hashedPassword,
       });
 
-      await newUser.save();
-
-      const verificationToken = this.jwtService.sign(
-        { _id: newUser._id }, //Token zawiera id użytkownika, żeby sprawdził który użytkownik dokonał akcji. Przypisuje token do konkretnego użytkownika
-        { expiresIn: '1h' },
+      const verificationToken = this.tokenService.generateVerificationToken(
+        newUser._id.toString(),
       );
-
       const verificationLink = `http://localhost:3000/autoryzacja/weryfikacja?token=${verificationToken}`;
-      await EmailService.sendVerificationEmail(
-        email,
-        verificationLink,
-        firstName,
-      );
+
+      try {
+        await EmailService.sendVerificationEmail(
+          email,
+          verificationLink,
+          firstName,
+        );
+      } catch (emailError) {
+        throw new Error('Nie udało się wysłać e-maila weryfikacyjnego');
+      }
+
+      await newUser.save();
 
       return newUser;
     } catch (error) {
@@ -72,19 +80,11 @@ export class AuthService {
     }
   }
 
-
-
   async login(loginDto: LoginDto, res: Response, rememberMe: boolean) {
     try {
       const { email, password } = loginDto;
 
       const user = await this.validateUser(email, password);
-
-      const payload = {
-        sub: user._id.toString(),
-        email: user.email,
-        role: user.role,
-      };
 
       if (!user.isEmailVerified) {
         throw new Error(
@@ -92,34 +92,24 @@ export class AuthService {
         );
       }
 
-      const accessToken = this.jwtService.sign(payload, {
-        expiresIn: '15m',
-      });
-
-      const refreshToken = crypto.randomBytes(40).toString('hex');
-      const refreshTokenExpires = new Date(
-        rememberMe
-          ? Date.now() + 30 * 24 * 60 * 60 * 1000
-          : Date.now() + 7 * 24 * 60 * 60 * 1000,
-      );
+      const { accessToken, refreshToken, refreshTokenExpires } =
+        this.tokenService.generateTokens(
+          user._id.toString(),
+          user.email,
+          user.role,
+          rememberMe,
+        );
 
       user.refreshTokenExpires = refreshTokenExpires;
       user.refreshToken = refreshToken;
       await user.save();
 
-      res.cookie('auth', accessToken, {
-        httpOnly: true,
-        secure: false,
-        maxAge: 15 * 60 * 1000,
-        sameSite: 'strict',
-      });
-
-      res.cookie('refresh-token', refreshToken, {
-        httpOnly: true,
-        secure: false,
-        maxAge: rememberMe ? 30 * 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000,
-        sameSite: 'strict',
-      });
+      this.cookieService.setAuthCookies(
+        res,
+        accessToken,
+        refreshToken,
+        rememberMe,
+      );
 
       return res.json({
         access_token: accessToken,
@@ -132,33 +122,20 @@ export class AuthService {
   }
 
   async refreshAccessToken(refreshToken: string, res: Response): Promise<void> {
-    const user = await this.userModel.findOne({
-      refreshToken,
-      refreshTokenExpires: { $gt: new Date() },  
-    });
-
+    const user = await this.authRepository.findByRefreshToken(refreshToken);
     if (!user) {
       throw new UnauthorizedException(
         'Nieprawidłowy lub wygasły refresh token',
       );
     }
-
-    const payload = {
-      sub: user._id.toString(),
-      email: user.email,
-      role: user.role,
-    };
-
-    const newAccessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
-
+    const newAccessToken = this.tokenService.generateAccessToken(
+      user._id.toString(),
+      user.email,
+      user.role,
+    );
     await user.save();
 
-    res.cookie('auth', newAccessToken, {
-      httpOnly: true,
-      secure: false,
-      maxAge: 15 * 60 * 1000,
-      sameSite: 'strict',
-    });
+    this.cookieService.setAuthCookies(res, newAccessToken, refreshToken, true);
 
     res.json({
       access_token: newAccessToken,
@@ -187,7 +164,7 @@ export class AuthService {
   async confirmEmail(token: string): Promise<string> {
     try {
       const decoded = this.jwtService.verify(token); //Rozkodowanie tokena
-      const user = await this.userModel.findById(decoded._id); //Wyszukiwanie użytkownika po id
+      const user = await this.authRepository.findById(decoded._id); //Wyszukiwanie użytkownika po id
 
       if (!user) {
         throw new Error('Użytkownik nie istnieje');
@@ -217,18 +194,17 @@ export class AuthService {
 
   async requestPassword(dto: RequestResetPasswordDto): Promise<String> {
     const { email } = dto;
-    const user = await this.userModel.findOne({ email });
+    const user = await this.authRepository.findByEmail(email);
 
     if (!user) {
       throw new NotFoundException(
         'Nie znaleziono użytkownika z podanym adresem email',
       );
     }
+    const resetToken = this.tokenService.generateResetPasswordToken(
+      user._id.toString(),
+    );
 
-    const resetToken = this.jwtService.sign(
-      { _id: user._id },
-      { expiresIn: '1h' },
-    ); //Token zawiera id użytkownika, żeby sprawdził który użytkownik dokonał akcji. Przypisuje token do konkretnego użytkownika
     user.resetPasswordToken = resetToken;
     user.resetPasswordExpires = new Date(Date.now() + 3600 * 1000);
     await user.save();
@@ -269,12 +245,14 @@ export class AuthService {
     return 'Hasło zostało pomyslnie zresetowane';
   }
 
-  async logout(refreshToken: string): Promise<void> {
+  async logout(refreshToken: string, res: Response): Promise<void> {
     const user = await this.userModel.findOne({ refreshToken });
 
     if (!user) {
       throw new NotFoundException('Nie znaleziono użytkownika');
     }
+
+    this.cookieService.DeleteCookies(res);
     user.refreshTokenExpires = null;
     user.refreshToken = null;
     await user.save();

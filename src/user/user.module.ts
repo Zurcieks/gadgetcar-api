@@ -10,6 +10,7 @@ import { JwtAuthGuard } from 'src/auth/guards/JwtAuthGuard';
 import { AuthService } from 'src/auth/auth.service';
 import { LocalStrategy } from 'src/auth/local.strategy';
 import { JwtStrategy } from 'src/auth/jwt/jwt-strategy';
+import { CookieService } from 'src/auth/service/cookie.service';
 
 @Module({
   imports: [
@@ -19,10 +20,12 @@ import { JwtStrategy } from 'src/auth/jwt/jwt-strategy';
       secret: process.env.SECRETKEY,
       signOptions: { expiresIn: '1h' },
     }),
+ 
   ],
 
  
   controllers: [UserController],
-  providers: [UserService, JwtAuthGuard, AuthService, LocalStrategy, JwtStrategy],
+  providers: [UserService, JwtAuthGuard, AuthService, LocalStrategy, JwtStrategy, CookieService],
+  exports: [UserService],
 })
 export class UserModule {}

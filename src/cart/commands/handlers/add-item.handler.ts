@@ -9,7 +9,7 @@ import { ProductRepository } from 'src/cart/repository/product.repository';
 export class AddItemHandler implements ICommandHandler<AddItemCommand> {
   constructor(
     private readonly cartRepository: CartRepository,
-    private readonly productRepository: ProductRepository,  
+    private readonly productRepository: ProductRepository,
     private readonly eventBus: EventBus,
   ) {}
 
@@ -30,12 +30,13 @@ export class AddItemHandler implements ICommandHandler<AddItemCommand> {
     if (item) {
       item.quantity += quantity;
     } else {
-      cart.items.push({ productId, quantity, price: product.price, });
+      cart.items.push({ productId, quantity, price: product.price });
     }
 
     await this.cartRepository.save(cart);
     
-    this.eventBus.publish(new ItemAddedEvent(userId.toHexString(), productId.toHexString(), quantity));
+    const userIdString = typeof userId === 'string' ? userId : userId.toString();
+    this.eventBus.publish(new ItemAddedEvent(userIdString, productId.toHexString(), quantity));
     
     return cart;
   }

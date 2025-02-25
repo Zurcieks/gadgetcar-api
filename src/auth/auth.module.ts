@@ -10,7 +10,10 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from 'src/schemas/User.schema';
 import { LocalStrategy } from './local.strategy';
 import { JwtAuthGuard } from './guards/JwtAuthGuard';
- 
+import { AuthRepository } from './repository/authRepository';
+import { TokenService } from './service/token.service';
+import { CookieService } from './service/cookie.service';
+
 @Global()
 @Module({
   imports: [
@@ -21,11 +24,22 @@ import { JwtAuthGuard } from './guards/JwtAuthGuard';
       signOptions: { expiresIn: '1h' },
     }),
   ],
-  providers: [AuthService, LocalStrategy, JwtStrategy, JwtAuthGuard],
+  providers: [
+    AuthService,
+    LocalStrategy,
+    JwtStrategy,
+    JwtAuthGuard,
+    AuthRepository,
+    TokenService,
+    CookieService,
+  ],
   exports: [
     AuthService,
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
-    JwtModule
+    JwtModule,
+    TokenService,
+    AuthRepository,
+    CookieService,
   ],
   controllers: [AuthController],
 })

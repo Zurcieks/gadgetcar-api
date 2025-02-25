@@ -24,7 +24,8 @@ export class RemoveItemHandler implements ICommandHandler<RemoveItemCommand> {
     );
     await this.cartRepository.save(cart);
 
-    this.eventBus.publish(new ItemRemovedEvent(userId.toHexString(), productId.toHexString()));
+    const userIdString = typeof userId === 'string' ? userId : userId.toString();
+    this.eventBus.publish(new ItemRemovedEvent(userIdString, productId.toHexString()));
 
     return cart;
   }

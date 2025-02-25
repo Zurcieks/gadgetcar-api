@@ -40,7 +40,7 @@ export class ProductController {
   @UseGuards(JwtAuthGuard, AdminGuard)
   @Post()
   @UseInterceptors(
-    FileFieldsInterceptor([{ name: 'images', maxCount: 5 }], {
+    FileFieldsInterceptor([{ name: 'images', maxCount: 7}], {
       storage: diskStorage({
         destination: (req, file, callback) => {
           callback(null, uploadDir);
